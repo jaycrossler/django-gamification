@@ -330,6 +330,7 @@ def user_project_badges_list(request,username,projectname,rendertype='html'):
 
     total_points = 0
     badges = []
+    tags = {}
     for project in projects:
 
         #Find all badges from the project
@@ -341,6 +342,17 @@ def user_project_badges_list(request,username,projectname,rendertype='html'):
         #Get list of badges user has
         badges = badges + project_badge_count(user,project,projbadges,url)
 
+        for pb in projbadges:
+            tag_list = pb.tags
+            if tag_list:
+                tag_list = tag_list.lower().split(",")
+                for tag in tag_list:
+                    tag = tag.strip()
+                if tags.has_key(tag):
+                    tags[tag] += 1
+                else:
+                    tags[tag] = 1
+
         #Count all the values of user's points
         pbtu = ProjectBadgeToUser.objects.filter(user__username=username,projectbadge__project=project)
         for userbadge in pbtu:
@@ -348,14 +360,14 @@ def user_project_badges_list(request,username,projectname,rendertype='html'):
 
     rendertype = rendertype or request.accepted_renderer.format
     if rendertype == 'html':
-        data = {'profile': badges,'points':total_points}
+        data = {'profile': badges, 'points':total_points, 'tags':tags}
         return Response(data, template_name='core/badge_list.html')
 
     #JSON
     badge_detail_list = []
 
     for bi in badges:
-        bstr = '{ "name":"%s", "awarded":%d, "url":"%s"}' % \
+        bstr = '{ "name":"%s", "awarded":%d, "url":"%s" }' % \
             ( bi['projectbadge__name'], bi['count'], bi['projectbadge__badge__icon'])
         badge_detail_list.append(json.loads(bstr))
 
